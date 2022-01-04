@@ -1,7 +1,8 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { FlyControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/FlyControls.js';
+import {OrbitControls} from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
 
-let scene, camera, renderer, controls, clock, ship;
+let scene, camera, renderer, controls, orbitControls, clock, ship, mouseClicked, preOrbitCameraPosition, preOrbitCameraRotation;
 
 const DEBUG_LOGS = false;
 const LOG_RATE = 60 * 5; // log every 5 seconds (at 60 fps)
@@ -23,17 +24,26 @@ function init() {
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
 
+    
+    clock = new THREE.Clock();
+
+    initFlyControls();
+    initOrbitControls();
+    addLights();
+    addObjs();
+    addShip();
+}
+
+function initFlyControls() {
     controls = new FlyControls(camera, renderer.domElement);
     controls.movementSpeed = 20;
     controls.domElement = renderer.domElement;
     controls.rollSpeed = Math.PI / 6;
     controls.dragToLook = true;
+}
 
-    clock = new THREE.Clock();
-
-    addLights();
-    addObjs();
-    addShip();
+function initOrbitControls() {
+    orbitControls = new OrbitControls(camera, renderer.domElement);
 }
 
 function addShip() {
@@ -43,7 +53,7 @@ function addShip() {
     const shipGeo = new THREE.ConeGeometry(radius, height, radialSegments);
     const shipMat = new THREE.MeshPhongMaterial({ color: '#666'});
     ship = new THREE.Mesh(shipGeo, shipMat);
-    ship.rotation.x = Math.PI / -2;
+
     scene.add(ship);
 }
 
@@ -79,7 +89,7 @@ function addLights() {
 }
 
 var counter = 1;
-var vec = new THREE.Vector3();
+
 function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
@@ -91,18 +101,23 @@ function animate() {
         
     }
 
-    ship.position.copy(camera.position);
-    ship.rotation.copy(camera.rotation);
-    camera.getWorldDirection(vec);
-    ship.translateZ(-10);
-    ship.translateY(-2);
+    if ( mouseClicked == 0 ) { // Using fly controls
+        ship.position.copy(camera.position);
+        ship.rotation.copy(camera.rotation);
+        ship.updateMatrix();
+
+        ship.translateZ(-10);
+        ship.translateY(-2);
+        ship.rotateX(Math.PI/-2);
+
+        controls.update(1 * delta);
+    } else { // Using orbit controls
+        orbitControls.target = ship.position;
+        orbitControls.update();
+    }
     
 
     
-
-
-
-    controls.update(1 * delta);
     renderer.render(scene, camera);
 }
 
@@ -110,6 +125,18 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+document.body.onmousedown = function(event) {
+    mouseClicked = 1;
+    preOrbitCameraPosition = camera.position;
+    preOrbitCameraRotation = camera.rotation;
+}
+document.body.onmouseup = function(event) {
+    mouseClicked = 0;
+    camera.position.copy(preOrbitCameraPosition);
+    camera.rotation.copy(preOrbitCameraRotation);
+    
 }
 
 window.addEventListener('resize', onWindowResize, false);
