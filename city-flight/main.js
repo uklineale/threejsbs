@@ -17,8 +17,9 @@ function init() {
         1000
     );
 
-    camera.position.z = 30;
+    camera.position.z = 10;
     camera.position.y = 9;
+    camera.rotation.z = Math.PI / -2;
     
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
@@ -30,8 +31,11 @@ function init() {
     initFlyControls();
     initOrbitControls();
     addLights();
-    addObjs();
     addShip();
+
+    var blockPos = new THREE.Vector3(0,0,0);
+    // var block = new CityBlock(blockPos, 10, scene);
+    generateBlock(100, 0.1);
 }
 
 function initFlyControls() {
@@ -57,26 +61,52 @@ function addShip() {
     scene.add(ship);
 }
 
-function addObjs() {
-    {
-        const cubeSize = 4;
-        const cubeGeo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-        const cubeMat = new THREE.MeshPhongMaterial({color: '#8AC'});
-        const mesh = new THREE.Mesh(cubeGeo, cubeMat);
-        mesh.position.set(cubeSize + 1, cubeSize / 2, 0);
-        scene.add(mesh);
+function generateBlock(length, probability) {
+    var objects = [];
+    var testPos = new THREE.Vector3();
+    var xzLength = 2;
+    var yLength = 30;
+    var spacingMultiplier = 4;
+
+    for (var i = 0; i < length; i++) {
+        var column = Array(length);
+        for (var j = 0; j < length; j++) {
+            var toGenerate = Math.floor(Math.random() * length);
+            if (toGenerate < probability) {
+                console.log("Adding block");
+                var building = new THREE.BoxGeometry(xzLength, yLength, xzLength);
+                var buildingMat = new THREE.MeshPhongMaterial({color: '#8AC'});
+                var buildingMesh = new THREE.Mesh(building, buildingMat);
+                buildingMesh.position.set(testPos.x + (i * spacingMultiplier), 0, testPos.z + (j * spacingMultiplier));
+                column[j] = buildingMesh;
+                scene.add(buildingMesh);
+            }
+        }
+        objects.push(column);
     }
-    {
-        const sphereRadius = 3;
-        const sphereWidthDivisions = 32;
-        const sphereHeightDivisions = 16;
-        const sphereGeo = new THREE.SphereGeometry(sphereRadius, sphereWidthDivisions, sphereHeightDivisions);
-        const sphereMat = new THREE.MeshPhongMaterial({color: '#CA8'});
-        const mesh = new THREE.Mesh(sphereGeo, sphereMat);
-        mesh.position.set(-sphereRadius - 1, sphereRadius + 2, 0);
-        scene.add(mesh);
-    }
+    console.log(objects);
 }
+
+// function addObjs() {
+//     {
+//         const cubeSize = 4;
+//         const cubeGeo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+//         const cubeMat = new THREE.MeshPhongMaterial({color: '#8AC'});
+//         const mesh = new THREE.Mesh(cubeGeo, cubeMat);
+//         mesh.position.set(cubeSize + 1, cubeSize / 2, 0);
+//         scene.add(mesh);
+//     }
+//     {
+//         const sphereRadius = 3;
+//         const sphereWidthDivisions = 32;
+//         const sphereHeightDivisions = 16;
+//         const sphereGeo = new THREE.SphereGeometry(sphereRadius, sphereWidthDivisions, sphereHeightDivisions);
+//         const sphereMat = new THREE.MeshPhongMaterial({color: '#CA8'});
+//         const mesh = new THREE.Mesh(sphereGeo, sphereMat);
+//         mesh.position.set(-sphereRadius - 1, sphereRadius + 2, 0);
+//         scene.add(mesh);
+//     }
+// }
 
 function addLights() {
     const ambientLight = new THREE.AmbientLight( 0xf0f0f0 );
@@ -121,6 +151,40 @@ function animate() {
     renderer.render(scene, camera);
 }
 
+class CityBlock {
+    constructor(position, length, scene) {
+        this.position = position;
+        this.length = length;
+        this.buildingXZ = 4;
+        this.buildingY = 7;
+        this.scene = scene;
+        this.density = 0.1; // Chance to generate object
+        this.objects = this.generateObjs();
+    }
+
+    generateObjs() {
+        console.log("Generating block!")
+        var objects = [];
+        for (var i = 0; i < this.length; i++) {
+            var column = Array(this.length);
+            for (var j = 0; j < this.length; j++) {
+                var toGenerate = Math.floor(Math.random() * this.length);
+                if (toGenerate < this.density) {
+                    console.log("Adding block");
+                    var building = new THREE.BoxGeometry(this.buildingXZ, this.buildingXZ, this.buildingY);
+                    var buildingMat = new THREE.MeshPhongMaterial({color: '#8AC'});
+                    var buildingMesh = new THREE.Mesh(building, buildingMat);
+                    buildingMesh.position.set(this.position + i, this.position + j, 0);
+                    column[j] = buildingMesh;
+                    scene.add(buildingMesh);
+                }
+            }
+            objects.push(column);
+        }
+        console.log(objects);
+    } 
+}
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -136,7 +200,7 @@ document.body.onmouseup = function(event) {
     mouseClicked = 0;
     camera.position.copy(preOrbitCameraPosition);
     camera.rotation.copy(preOrbitCameraRotation);
-    
+
 }
 
 window.addEventListener('resize', onWindowResize, false);
