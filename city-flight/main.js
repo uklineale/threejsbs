@@ -1,6 +1,7 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { FlyControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/FlyControls.js';
 import {OrbitControls} from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/GLTFLoader.js';
 
 let scene, camera, renderer, controls, orbitControls, clock, ship, mouseClicked, preOrbitCameraPosition, preOrbitCameraRotation;
 
@@ -17,9 +18,10 @@ function init() {
         1000
     );
 
-    camera.position.z = 10;
-    camera.position.y = 9;
-    camera.rotation.z = Math.PI / -2;
+    camera.position.z = -10;
+    camera.position.y = 0;
+    camera.rotation.y = Math.PI / -3;
+    camera.rotation.x = Math.PI;
     
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
@@ -29,21 +31,36 @@ function init() {
     clock = new THREE.Clock();
 
     initFlyControls();
-    initOrbitControls();
+    // initOrbitControls();
     addLights();
     addShip();
 
+    const loader = new GLTFLoader();
+
+    loader.load( 'assets/tree.glb', function ( gltf ) {
+
+        scene.add( gltf.scene );
+
+    }, undefined, function ( error ) {
+
+        console.error( error );
+
+    } );
+
     var blockPos = new THREE.Vector3(0,0,0);
+    // TODO: Figure out why classes don't work
     // var block = new CityBlock(blockPos, 10, scene);
-    generateBlock(100, 0.1);
+    // block.generateObjs();
+    generateBlock(blockPos, 100, 0.1);
 }
 
 function initFlyControls() {
     controls = new FlyControls(camera, renderer.domElement);
-    controls.movementSpeed = 20;
+    controls.movementSpeed = 150;
     controls.domElement = renderer.domElement;
     controls.rollSpeed = Math.PI / 6;
     controls.dragToLook = true;
+    // controls.autoForward = true;
 }
 
 function initOrbitControls() {
@@ -61,9 +78,12 @@ function addShip() {
     scene.add(ship);
 }
 
-function generateBlock(length, probability) {
+function needToGenerateBlock(shipPos) {
+
+}
+
+function generateBlock(origin, length, probability) {
     var objects = [];
-    var testPos = new THREE.Vector3();
     var xzLength = 2;
     var yLength = 30;
     var spacingMultiplier = 4;
@@ -77,7 +97,7 @@ function generateBlock(length, probability) {
                 var building = new THREE.BoxGeometry(xzLength, yLength, xzLength);
                 var buildingMat = new THREE.MeshPhongMaterial({color: '#8AC'});
                 var buildingMesh = new THREE.Mesh(building, buildingMat);
-                buildingMesh.position.set(testPos.x + (i * spacingMultiplier), 0, testPos.z + (j * spacingMultiplier));
+                buildingMesh.position.set(origin.x + (i * spacingMultiplier), 0, origin.z + (j * spacingMultiplier));
                 column[j] = buildingMesh;
                 scene.add(buildingMesh);
             }
@@ -131,20 +151,15 @@ function animate() {
         
     }
 
-    if ( mouseClicked == 0 ) { // Using fly controls
         ship.position.copy(camera.position);
         ship.rotation.copy(camera.rotation);
         ship.updateMatrix();
 
         ship.translateZ(-10);
         ship.translateY(-2);
-        ship.rotateX(Math.PI/-2);
+        ship.rotateX(Math.PI/-3);
 
         controls.update(1 * delta);
-    } else { // Using orbit controls
-        orbitControls.target = ship.position;
-        orbitControls.update();
-    }
     
 
     
@@ -159,12 +174,12 @@ class CityBlock {
         this.buildingY = 7;
         this.scene = scene;
         this.density = 0.1; // Chance to generate object
-        this.objects = this.generateObjs();
+        this.objects = [];
     }
 
     generateObjs() {
         console.log("Generating block!")
-        var objects = [];
+        var objs = [];
         for (var i = 0; i < this.length; i++) {
             var column = Array(this.length);
             for (var j = 0; j < this.length; j++) {
@@ -179,9 +194,9 @@ class CityBlock {
                     scene.add(buildingMesh);
                 }
             }
-            objects.push(column);
+            objs.push(column);
         }
-        console.log(objects);
+        this.objects = objs;
     } 
 }
 
@@ -189,18 +204,6 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-document.body.onmousedown = function(event) {
-    mouseClicked = 1;
-    preOrbitCameraPosition = camera.position;
-    preOrbitCameraRotation = camera.rotation;
-}
-document.body.onmouseup = function(event) {
-    mouseClicked = 0;
-    camera.position.copy(preOrbitCameraPosition);
-    camera.rotation.copy(preOrbitCameraRotation);
-
 }
 
 window.addEventListener('resize', onWindowResize, false);
