@@ -49,6 +49,14 @@ function addCube() {
     scene.add( cube );
 }
 
+function addSun() {
+    const geometry = new THREE.SphereGeometry(2);
+    const material = new THREE.MeshPhysicalMaterial( {color: 0xf4ff9e} );
+    const sphere = new THREE.Mesh( geometry, material );
+    sphere.position.set(4,4,0);
+    scene.add( sphere );
+}
+
 function addLights() {
     const ambientLight = new THREE.AmbientLight( 0xf0f0f0 );
     scene.add(ambientLight);
